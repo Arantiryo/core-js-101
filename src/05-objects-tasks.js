@@ -114,33 +114,119 @@ function fromJSON(proto, json) {
  *  For more examples see unit tests.
  */
 
+class BaseSelector {
+  constructor(value, type) {
+    this.selectors = [];
+    this.selectorTypes = [];
+    this.addSelector(value, type);
+  }
+
+  addSelector(value, type) {
+    this.selectors.push(value);
+    this.selectorTypes.push(type);
+    if (!this.checkUniqueSelectors()) {
+      // prettier-ignore
+      throw new Error('Element, id and pseudo-element should not occur more then one time inside the selector');
+    }
+    if (!this.checkOrder()) {
+      // prettier-ignore
+      throw new Error('Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element');
+    }
+  }
+
+  element(value) {
+    this.addSelector(value, 'elem');
+    return this;
+  }
+
+  id(value) {
+    this.addSelector(`#${value}`, '#');
+    return this;
+  }
+
+  class(value) {
+    this.addSelector(`.${value}`, '.');
+    return this;
+  }
+
+  attr(value) {
+    this.addSelector(`[${value}]`, 'attr');
+    return this;
+  }
+
+  pseudoClass(value) {
+    this.addSelector(`:${value}`, ':');
+    return this;
+  }
+
+  pseudoElement(value) {
+    this.addSelector(`::${value}`, '::');
+    return this;
+  }
+
+  combine(combinator, selector2) {
+    this.selectors.push(` ${combinator} `, ...selector2.selectors);
+    return this;
+  }
+
+  stringify() {
+    return this.selectors.join('');
+  }
+
+  checkUniqueSelectors() {
+    if (this.selectorTypes.length < 2) return true;
+    // prettier-ignore
+    if (this.selectorTypes.filter((x) => x === 'elem').length > 1
+      || this.selectorTypes.filter((x) => x === '#').length > 1
+      || this.selectorTypes.filter((x) => x === '::').length > 1) {
+      return false;
+    }
+    return true;
+  }
+
+  checkOrder() {
+    const POSITIONS = {
+      elem: 1,
+      '#': 2,
+      '.': 3,
+      attr: 4,
+      ':': 5,
+      '::': 6,
+    };
+
+    // prettier-ignore
+    const ordered = [...this.selectorTypes].sort((a, b) => POSITIONS[a] - POSITIONS[b]);
+    return this.selectorTypes.every((v, i) => v === ordered[i]);
+  }
+}
+
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  element(value) {
+    return new BaseSelector(value, 'elem');
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    return new BaseSelector(`#${value}`, '#');
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    return new BaseSelector(`.${value}`, '.');
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    return new BaseSelector(`[${value}]`, 'attr');
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  pseudoClass(value) {
+    return new BaseSelector(`:${value}`, ':');
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  pseudoElement(value) {
+    return new BaseSelector(`::${value}`, '::');
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  combine(selector1, combinator, selector2) {
+    return selector1.combine(combinator, selector2);
   },
 };
 
