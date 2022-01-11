@@ -99,8 +99,15 @@ function getFastestPromise(array) {
  *    });
  *
  */
-function chainPromises(/* array, action */) {
-  throw new Error('Not implemented');
+function chainPromises(array, action) {
+  // prettier-ignore
+  return array.reduce(
+    (promiseChain, currentTask) => promiseChain
+      .then((chainResults) => currentTask
+        .then((currentResult) => action(chainResults, currentResult))).catch(() => {
+        // console.log(error)
+      }),
+  );
 }
 
 module.exports = {
